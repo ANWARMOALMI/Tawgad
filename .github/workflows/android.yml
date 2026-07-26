@@ -9,8 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
 
     steps:
     - uses: actions/checkout@v4
@@ -21,6 +19,9 @@ jobs:
         distribution: temurin
         java-version: '11'
 
+    - name: Set ANDROID_SDK_ROOT
+      run: echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
+
     - name: Install prerequisites
       run: sudo apt-get update && sudo apt-get install -y wget unzip
 
@@ -28,10 +29,8 @@ jobs:
       run: |
         mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
         cd "$ANDROID_SDK_ROOT/cmdline-tools"
-        # تنزيل أدوات الأوامر (رابط ثابت لنسخة Linux — يمكن تغييره للنسخة الأحدث إذا لزم)
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
         unzip -q cmdline.zip
-        # وضعها تحت مجلد latest كما تتوقع SDK
         mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
         mv cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" 2>/dev/null || true
         export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
