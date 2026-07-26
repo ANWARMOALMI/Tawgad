@@ -1,0 +1,6 @@
+{
+  "name": "متواجد - دليل المنتجات والصيدليات",
+  "description": "تطبيق لبحث وأماكن تواجد الأدوية وقطع الغيار والمنتجات مع الأسعار والعناوين ودعم متعدد العملات",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
