@@ -58,12 +58,12 @@ fun TopAppBarHeader(
     Surface(
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 4.dp
+        shadowElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -74,7 +74,7 @@ fun TopAppBarHeader(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(28.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary),
                         contentAlignment = Alignment.Center
@@ -83,20 +83,20 @@ fun TopAppBarHeader(
                             imageVector = Icons.Default.Search,
                             contentDescription = "متواجد",
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Column {
                         Text(
                             text = "متواجد",
-                            fontSize = 20.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
                             text = "دليل الأدوية والصيدليات والمتاجر",
-                            fontSize = 11.sp,
+                            fontSize = 9.sp,
                             color = Color.White.copy(alpha = 0.85f)
                         )
                     }
@@ -107,7 +107,7 @@ fun TopAppBarHeader(
                     // Currency Chips Toggle
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(Color.White.copy(alpha = 0.15f))
                             .padding(2.dp)
                     ) {
@@ -115,17 +115,17 @@ fun TopAppBarHeader(
                             val isSelected = curr == selectedCurrency
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         if (isSelected) Color.White
                                         else Color.Transparent
                                     )
                                     .clickable { onCurrencySelected(curr) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = curr.symbolArabic,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f)
                                 )
@@ -133,15 +133,21 @@ fun TopAppBarHeader(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
 
-                    IconButton(onClick = onOpenRatesDialog) {
+                    IconButton(
+                        onClick = onOpenRatesDialog,
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.CurrencyExchange,
                             contentDescription = "أسعار الصرف",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(2.dp))
 
                     // Prominent Separate Login / Dashboard Button
                     when (userSession) {
@@ -233,29 +239,29 @@ fun TopAppBarHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .padding(top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Box {
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Color.White.copy(alpha = 0.2f))
                             .clickable { cityMenuExpanded = true }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "المدينة",
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "المدينة: $selectedCity",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )

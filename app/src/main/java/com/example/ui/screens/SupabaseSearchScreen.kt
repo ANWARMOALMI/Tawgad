@@ -120,49 +120,6 @@ fun SupabaseSearchScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Supabase Banner Bar
-        Surface(
-            color = Color(0xFF0F172A),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.CloudQueue,
-                        contentDescription = "Supabase",
-                        tint = Color(0xFF34D399),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "البحث المباشر من قاعدة بيانات Supabase",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF059669).copy(alpha = 0.3f)
-                ) {
-                    Text(
-                        text = "مباشر ⚡",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF34D399),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-            }
-        }
-
         // Search Text Field Box
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -408,7 +365,7 @@ fun SupabaseSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "جاري البحث في قاعدة بيانات Supabase...",
+                            text = "جاري البحث عن المنتجات والقطع...",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -432,7 +389,7 @@ fun SupabaseSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "حدث خطأ أثناء الاتصال بالسحابة",
+                            text = "حدث خطأ أثناء الاتصال بالشبكة",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -480,14 +437,14 @@ fun SupabaseSearchScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "لم يتم العثور على نتائج في Supabase",
+                            text = "لم يتم العثور على نتائج مطابقة للبحث",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "جرب البحث بكلمات أخرى أو اختر تصنيف مختلف",
+                            text = "جرب البحث بكلمات أخرى أو اختر تصنيفاً آخر",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -510,14 +467,14 @@ fun SupabaseSearchScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "نتائج البحث من Supabase (${searchResults.size})",
-                                    fontSize = 13.sp,
+                                    text = "نتائج البحث (${searchResults.size})",
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "التصنيف: $selectedCategory",
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

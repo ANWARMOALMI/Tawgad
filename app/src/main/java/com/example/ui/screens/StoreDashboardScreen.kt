@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import com.example.util.CsvExcelImporter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,6 +52,7 @@ fun StoreDashboardScreen(
     onAddProductToStore: (name: String, category: String, activeIngredient: String, unit: String, priceYer: Double, stockQuantity: Int, stockStatus: String) -> Unit,
     onUpdateInventoryItem: (storeId: Long, productId: Long, priceYer: Double, stockQuantity: Int, stockStatus: String) -> Unit,
     onImportCsv: (Uri, Long) -> Unit,
+    onImportExcelText: (text: String, storeId: Long) -> Unit = { _, _ -> },
     onUpdateStoreDetails: (StoreEntity) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -55,6 +60,7 @@ fun StoreDashboardScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showLowStockOnly by remember { mutableStateOf(false) }
     var showAddProductDialog by remember { mutableStateOf(false) }
+    var showExcelImportDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<StoreInventoryItemDetail?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -82,63 +88,72 @@ fun StoreDashboardScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // --- Store Header Banner ---
-        Box(
+        // --- Store Header Card (Light & Elegant) ---
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            shadowElevation = 1.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(IndigoPrimary, IndigoAccent)
-                    )
-                )
-                .padding(20.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp))
         ) {
-            Column {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(48.dp)
+                            color = IndigoPrimary.copy(alpha = 0.12f),
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Storefront,
                                     contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
+                                    tint = IndigoPrimary,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
                                 text = store.name,
-                                color = Color.White,
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color.White.copy(alpha = 0.25f)
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = IndigoPrimary.copy(alpha = 0.15f)
                                 ) {
                                     Text(
                                         text = store.category,
-                                        color = Color.White,
-                                        fontSize = 11.sp,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        color = IndigoPrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "📍 ${store.city} - ${store.address}",
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -146,45 +161,90 @@ fun StoreDashboardScreen(
                         }
                     }
 
-                    IconButton(
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    OutlinedButton(
                         onClick = onLogout,
-                        modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                            .testTag("store_logout_btn")
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF9A9A)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.testTag("store_logout_btn")
                     ) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "تسجيل خروج",
-                            tint = Color.White
+                            contentDescription = "تسجيل الخروج",
+                            modifier = Modifier.size(13.dp)
                         )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("خروج", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // --- Summary KPI Cards ---
+                // --- Compact Summary KPI Badges Row ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    KpiCard(
-                        title = "الأصناف بمتجرك",
-                        value = "$totalItems صنف",
-                        icon = Icons.Default.Inventory,
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.weight(1f)
-                    )
-                    KpiCard(
-                        title = "أصناف متوفرة",
-                        value = "$availableCount صنف",
-                        icon = Icons.Default.CheckCircle,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Inventory, contentDescription = null, tint = IndigoPrimary, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("المعروض: $totalItems", color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFE8F5E9),
                         modifier = Modifier.weight(1f)
-                    )
-                    KpiCard(
-                        title = "كميات محدودة",
-                        value = "$lowStockCount صنف",
-                        icon = Icons.Default.Warning,
-                        modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("متوفر: $availableCount", color = Color(0xFF1B5E20), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (lowStockCount > 0) Color(0xFFFFEBEE) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { if (lowStockCount > 0) showLowStockOnly = !showLowStockOnly }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (lowStockCount > 0) Color(0xFFC62828) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                if (showLowStockOnly) "الكل" else "نواقص: $lowStockCount",
+                                color = if (lowStockCount > 0) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurface,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -198,14 +258,14 @@ fun StoreDashboardScreen(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("المخزون والكميات", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Default.List, contentDescription = null) }
+                text = { Text("المخزون والكميات", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                icon = { Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp)) }
             )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("بيانات المتجر والتواصل", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Default.ContactPhone, contentDescription = null) }
+                text = { Text("بيانات المتجر والتواصل", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                icon = { Icon(Icons.Default.ContactPhone, contentDescription = null, modifier = Modifier.size(18.dp)) }
             )
         }
 
@@ -215,275 +275,70 @@ fun StoreDashboardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    // --- Store Dashboard Summary & Support Card ---
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("store_summary_support_card")
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Analytics,
-                                        contentDescription = null,
-                                        tint = IndigoPrimary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "ملخص مؤشرات متجرك 📊",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = IndigoPrimary.copy(alpha = 0.1f)
-                                ) {
-                                    Text(
-                                        text = "إجمالي المدرج: $totalItems صنف",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = IndigoPrimary,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Warning,
-                                            contentDescription = null,
-                                            tint = Color(0xFFE65100),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Column {
-                                            Text("الأصناف القليلة", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text("$lowStockCount صنف", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            tint = Color(0xFF2E7D32),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Column {
-                                            Text("المتوفر بالكامل", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text("$availableCount صنف", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                            // Quick Contact Support Information
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Code,
-                                        contentDescription = null,
-                                        tint = IndigoPrimary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Column {
-                                        Text(
-                                            text = "مطور النظام: المعلمي سوفت 💻",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "للدعم الفني والاستفسار: +967772991151",
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = IndigoPrimary.copy(alpha = 0.15f)
-                                ) {
-                                    Text(
-                                        text = "+967772991151",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = IndigoPrimary,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (lowStockCount > 0) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Card(
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (showLowStockOnly) Color(0xFFFFE0B2) else Color(0xFFFFF3E0)
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB74D)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("stock_alert_banner")
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = "تنبيه المخزون",
-                                        tint = Color(0xFFE65100),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = "تنبيه المخزون المنخفض! ⚠️",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFE65100)
-                                        )
-                                        Text(
-                                            text = "يوجد $lowStockCount صنف شارف على النفاد أو نفد بالكامل.",
-                                            fontSize = 11.sp,
-                                            color = Color(0xFFBF360C)
-                                        )
-                                    }
-                                }
-
-                                Button(
-                                    onClick = { showLowStockOnly = !showLowStockOnly },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (showLowStockOnly) Color(0xFFE65100) else Color(0xFFF57C00)
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = if (showLowStockOnly) "عرض الكل" else "تصفية النواقص",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Action Buttons Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { showAddProductDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("store_add_product_btn")
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("إضافة صنف جديد", fontSize = 13.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = { filePickerLauncher.launch("*/*") },
-                            enabled = !isImporting,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("store_import_excel_btn")
-                        ) {
-                            if (isImporting) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("استيراد Excel لمتجري", fontSize = 12.sp)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Search within store items
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("بحث داخل مخزون متجرك...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = null)
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                    // Action Buttons Row & Search Field (Compact Header)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        // Row 1: Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showAddProductDialog = true },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("store_add_product_btn")
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("إضافة صنف جديد", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = { showExcelImportDialog = true },
+                                enabled = !isImporting,
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("store_import_excel_btn")
+                            ) {
+                                if (isImporting) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("رفع ملف Excel والكميات", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Row 2: Search within store items
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("بحث باسم الصنف أو المادة الفعالة...", fontSize = 12.sp) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     if (filteredItems.isEmpty()) {
                         Box(
@@ -497,21 +352,65 @@ fun StoreDashboardScreen(
                                     imageVector = Icons.Default.Inbox,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(48.dp)
+                                    modifier = Modifier.size(44.dp)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = if (searchQuery.isNotEmpty()) "لا توجد نتائج مطابقة للبحث" else "لم تقم بإضافة أي أصناف لمخزون متجرك بعد",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 14.sp
+                                    fontSize = 13.sp
                                 )
                             }
                         }
                     } else {
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
+                            // Low stock alert bar at top of list if needed
+                            if (lowStockCount > 0 && !showLowStockOnly) {
+                                item {
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = Color(0xFFFFF3E0),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB74D)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showLowStockOnly = true }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Warning,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFE65100),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "تنبيه: يوجد $lowStockCount صنف في النواقص أو كمية محدودة",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFFE65100)
+                                                )
+                                            }
+                                            Text(
+                                                text = "تصفية 🔍",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFE65100)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             items(filteredItems, key = { it.productId }) { item ->
                                 StoreItemCard(
                                     item = item,
@@ -519,6 +418,36 @@ fun StoreDashboardScreen(
                                     selectedCurrency = selectedCurrency,
                                     onEdit = { editingItem = item }
                                 )
+                            }
+
+                            // Footer Item inside LazyColumn
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp, bottom = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "مطور النظام: المعلمي سوفت 💻",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "الدعم الفني: +967772991151",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -542,6 +471,21 @@ fun StoreDashboardScreen(
             onConfirm = { name, category, activeIngredient, unit, priceYer, stockQty, stockStatus ->
                 onAddProductToStore(name, category, activeIngredient, unit, priceYer, stockQty, stockStatus)
                 showAddProductDialog = false
+            }
+        )
+    }
+
+    // Excel / CSV Import Dialog
+    if (showExcelImportDialog) {
+        ExcelImportDialog(
+            onDismiss = { showExcelImportDialog = false },
+            onOpenFilePicker = {
+                showExcelImportDialog = false
+                filePickerLauncher.launch("*/*")
+            },
+            onImportText = { text ->
+                onImportExcelText(text, store.id)
+                showExcelImportDialog = false
             }
         )
     }
@@ -1003,6 +947,209 @@ private fun EditStoreItemDialog(
                 }
             ) {
                 Text("حفظ التعديلات")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء") }
+        }
+    )
+}
+
+@Composable
+private fun ExcelImportDialog(
+    onDismiss: () -> Unit,
+    onOpenFilePicker: () -> Unit,
+    onImportText: (String) -> Unit
+) {
+    val clipboardManager = LocalClipboardManager.current
+    var pastedText by remember { mutableStateOf("") }
+    var copiedNotice by remember { mutableStateOf(false) }
+
+    val parsedItems = remember(pastedText) {
+        if (pastedText.isBlank()) emptyList()
+        else CsvExcelImporter.parseTextContent(pastedText)
+    }
+
+    val totalQty = parsedItems.sumOf { it.stockQuantity }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.TableChart,
+                    contentDescription = null,
+                    tint = IndigoPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "رفع واستيراد Excel والكميات 📊",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Option 1: File Picker Button
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "الخيار 1: اختيار ملف Excel أو CSV من الهاتف",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Button(
+                            onClick = onOpenFilePicker,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary)
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("اختر ملف Excel / CSV من الجهاز", fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                // Option 2: Copy Template & Paste Excel Data
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "الخيار 2: لصق بيانات جدول Excel مباشرة",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(CsvExcelImporter.STORE_EXCEL_TEMPLATE))
+                            copiedNotice = true
+                        }
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (copiedNotice) "تم نسخ القالب! ✓" else "نسخ قالب Excel", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Text(
+                    text = "الأعمدة المدعومة: اسم المنتج | الفئة | المكون الفعال/رقم القطعة | السعر | الكمية | الوحدة | حالة التوفر",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = pastedText,
+                    onValueChange = { pastedText = it },
+                    placeholder = {
+                        Text(
+                            text = "قم بنسخ صفوف جدول Excel أو CSV ولصقها هنا مباشرة...\nمثال:\nبنادول 500ملغ,أدوية,Paracetamol,1200,50,علبة,متوفر",
+                            fontSize = 11.sp
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                if (parsedItems.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE8F5E9)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "تم التعرف على: ${parsedItems.size} صنف 📦",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF2E7D32)
+                            )
+                            Text(
+                                text = "إجمالي الكمية: $totalQty",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF1B5E20)
+                            )
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(parsedItems) { item ->
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "${item.productName} (${item.activeIngredient})",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${item.priceYer.toLong()} YER | كمية: ${item.stockQuantity}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = IndigoPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (pastedText.isNotBlank()) {
+                        onImportText(pastedText)
+                    }
+                },
+                enabled = parsedItems.isNotEmpty(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(if (parsedItems.isNotEmpty()) "تأكيد واستيراد (${parsedItems.size} صنف)" else "تأكيد الاستيراد")
             }
         },
         dismissButton = {

@@ -121,7 +121,7 @@ fun MutawajidApp(viewModel: MainViewModel) {
     val isSearchingSupabase by viewModel.isSearchingSupabase.collectAsStateWithLifecycle()
     val supabaseSearchError by viewModel.supabaseSearchError.collectAsStateWithLifecycle()
 
-    // Navigation Tab state: 0: Supabase Search, 1: Local Search, 2: Stores, 3: Favorites, 4: Private Dashboard
+    // Navigation Tab state: 0: Search, 1: Stores, 2: Favorites, 3: Private Dashboard
     var currentTab by remember { mutableIntStateOf(0) }
     var showLoginDialog by remember { mutableStateOf(false) }
     var showRatesDialog by remember { mutableStateOf(false) }
@@ -145,7 +145,7 @@ fun MutawajidApp(viewModel: MainViewModel) {
                 onCurrencySelected = { viewModel.setCurrency(it) },
                 onOpenRatesDialog = { showRatesDialog = true },
                 onOpenLoginDialog = { showLoginDialog = true },
-                onNavigateToDashboard = { currentTab = 4 }
+                onNavigateToDashboard = { currentTab = 3 }
             )
         },
         bottomBar = {
@@ -157,32 +157,19 @@ fun MutawajidApp(viewModel: MainViewModel) {
                 NavigationBarItem(
                     selected = currentTab == 0,
                     onClick = { currentTab = 0 },
-                    icon = { Icon(Icons.Default.CloudQueue, contentDescription = "بحث Supabase") },
-                    label = { Text("بحث Supabase", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.Search, contentDescription = "البحث") },
+                    label = { Text("البحث", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = IndigoPrimary,
                         selectedTextColor = IndigoPrimary,
                         indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
                     ),
-                    modifier = Modifier.testTag("nav_supabase_search_tab")
+                    modifier = Modifier.testTag("nav_search_tab")
                 )
 
                 NavigationBarItem(
                     selected = currentTab == 1,
                     onClick = { currentTab = 1 },
-                    icon = { Icon(Icons.Default.Search, contentDescription = "البحث المحلي") },
-                    label = { Text("البحث المحلي", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = IndigoPrimary,
-                        selectedTextColor = IndigoPrimary,
-                        indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-                    ),
-                    modifier = Modifier.testTag("nav_local_search_tab")
-                )
-
-                NavigationBarItem(
-                    selected = currentTab == 2,
-                    onClick = { currentTab = 2 },
                     icon = { Icon(Icons.Default.Store, contentDescription = "المتاجر") },
                     label = { Text("المتاجر", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
@@ -194,8 +181,8 @@ fun MutawajidApp(viewModel: MainViewModel) {
                 )
 
                 NavigationBarItem(
-                    selected = currentTab == 3,
-                    onClick = { currentTab = 3 },
+                    selected = currentTab == 2,
+                    onClick = { currentTab = 2 },
                     icon = { Icon(Icons.Default.Favorite, contentDescription = "المفضلة") },
                     label = { Text("المفضلة", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
@@ -206,12 +193,12 @@ fun MutawajidApp(viewModel: MainViewModel) {
                     modifier = Modifier.testTag("nav_favorites_tab")
                 )
 
-                // Tab 4: Private Control Panel (for logged-in Store Owners or Super Admin)
+                // Tab 3: Private Control Panel (for logged-in Store Owners or Super Admin)
                 when (userSession) {
                     is UserSession.SuperAdmin -> {
                         NavigationBarItem(
-                            selected = currentTab == 4,
-                            onClick = { currentTab = 4 },
+                            selected = currentTab == 3,
+                            onClick = { currentTab = 3 },
                             icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = "لوحة الأدمن") },
                             label = { Text("لوحة الأدمن 👑", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                             colors = NavigationBarItemDefaults.colors(
@@ -225,8 +212,8 @@ fun MutawajidApp(viewModel: MainViewModel) {
 
                     is UserSession.StoreOwner -> {
                         NavigationBarItem(
-                            selected = currentTab == 4,
-                            onClick = { currentTab = 4 },
+                            selected = currentTab == 3,
+                            onClick = { currentTab = 3 },
                             icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = "لوحة متجري") },
                             label = { Text("لوحة متجري 🏥", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                             colors = NavigationBarItemDefaults.colors(
@@ -262,24 +249,7 @@ fun MutawajidApp(viewModel: MainViewModel) {
                 .padding(innerPadding)
         ) {
             when (currentTab) {
-                0 -> SupabaseSearchScreen(
-                    searchQuery = searchQuery,
-                    onQueryChanged = viewModel::onSearchQueryChanged,
-                    selectedCategory = selectedCategory,
-                    onCategorySelected = viewModel::setCategoryFilter,
-                    isSearching = isSearchingSupabase,
-                    searchResults = supabaseSearchResults,
-                    errorMessage = supabaseSearchError,
-                    favoriteIds = favoriteIds,
-                    selectedCurrency = selectedCurrency,
-                    onCurrencySelected = { viewModel.setCurrency(it) },
-                    rates = currencyRates,
-                    onFavoriteToggle = viewModel::toggleFavorite,
-                    onSearchTriggered = { viewModel.searchSupabaseDirectly() },
-                    onProductSelected = viewModel::selectProduct
-                )
-
-                1 -> HomeScreen(
+                0 -> HomeScreen(
                     searchQuery = searchQuery,
                     onQueryChanged = viewModel::onSearchQueryChanged,
                     onSubmitSearch = viewModel::submitSearch,
@@ -296,12 +266,12 @@ fun MutawajidApp(viewModel: MainViewModel) {
                     onProductSelected = viewModel::selectProduct
                 )
 
-                2 -> StoresScreen(
+                1 -> StoresScreen(
                     stores = allStores,
                     selectedCity = selectedCity
                 )
 
-                3 -> FavoritesScreen(
+                2 -> FavoritesScreen(
                     favoriteProducts = favoriteProducts,
                     selectedCurrency = selectedCurrency,
                     rates = currencyRates,
@@ -309,7 +279,7 @@ fun MutawajidApp(viewModel: MainViewModel) {
                     onProductSelected = viewModel::selectProduct
                 )
 
-                4 -> {
+                3 -> {
                     when (val session = userSession) {
                         is UserSession.SuperAdmin -> {
                             AdminScreen(
@@ -353,6 +323,9 @@ fun MutawajidApp(viewModel: MainViewModel) {
                                 },
                                 onImportCsv = { uri, storeId ->
                                     viewModel.importCsvForSpecificStore(uri, storeId)
+                                },
+                                onImportExcelText = { text, storeId ->
+                                    viewModel.importExcelTextForSpecificStore(text, storeId)
                                 },
                                 onUpdateStoreDetails = { updatedStore ->
                                     viewModel.updateStoreInfo(updatedStore)
@@ -403,7 +376,7 @@ fun MutawajidApp(viewModel: MainViewModel) {
                     onLogin = { username, password ->
                         viewModel.login(username, password) { success, msg ->
                             if (success) {
-                                currentTab = 4
+                                currentTab = 3
                                 showLoginDialog = false
                             }
                         }
@@ -421,14 +394,6 @@ fun UnifiedLoginDialog(
 ) {
     var usernameText by remember { mutableStateOf("") }
     var passwordText by remember { mutableStateOf("") }
-
-    val sampleAccounts = listOf(
-        "👑 الأدمن العام" to ("admin" to "1234"),
-        "🏥 صيدلية الأمل" to ("amal_pharmacy" to "1234"),
-        "🏥 صيدلية العافية" to ("afia_pharmacy" to "1234"),
-        "🏥 صيدلية عدن" to ("aden_pharmacy" to "1234"),
-        "🚗 مركز التيسير" to ("tayseer_auto" to "1234")
-    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -460,8 +425,8 @@ fun UnifiedLoginDialog(
                 OutlinedTextField(
                     value = usernameText,
                     onValueChange = { usernameText = it },
-                    label = { Text("اسم المستخدم (Username)") },
-                    placeholder = { Text("مثال: amal_pharmacy أو admin") },
+                    label = { Text("اسم المستخدم") },
+                    placeholder = { Text("أدخل اسم المستخدم") },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -471,8 +436,8 @@ fun UnifiedLoginDialog(
                 OutlinedTextField(
                     value = passwordText,
                     onValueChange = { passwordText = it },
-                    label = { Text("كلمة المرور (Password)") },
-                    placeholder = { Text("مثال: 1234") },
+                    label = { Text("كلمة المرور") },
+                    placeholder = { Text("أدخل كلمة المرور") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -480,36 +445,6 @@ fun UnifiedLoginDialog(
                         .fillMaxWidth()
                         .testTag("login_password_input")
                 )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = "اختصار سريع للحسابات التجريبية:",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    sampleAccounts.chunked(2).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            rowItems.forEach { (label, creds) ->
-                                TextButton(
-                                    onClick = {
-                                        usernameText = creds.first
-                                        passwordText = creds.second
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(label, fontSize = 10.sp, maxLines = 1)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         },
         confirmButton = {

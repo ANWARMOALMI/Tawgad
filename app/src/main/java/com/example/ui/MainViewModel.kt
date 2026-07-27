@@ -13,6 +13,7 @@ import com.example.data.SearchHistoryEntity
 import com.example.data.StoreEntity
 import com.example.data.StoreInventoryEntity
 import com.example.util.CsvExcelImporter
+import com.example.util.ImportedInventoryItem
 import com.example.util.Currency
 import com.example.util.CurrencyRates
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -374,32 +375,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val inputStream: InputStream? = getApplication<Application>().contentResolver.openInputStream(uri)
                 if (inputStream != null) {
                     val importedItems = CsvExcelImporter.parseCsvStream(inputStream)
-                    var count = 0
-                    for (item in importedItems) {
-                        var product = productDao.getProductByName(item.productName.trim())
-                        val productId = product?.id ?: productDao.insertProduct(
-                            ProductEntity(
-                                name = item.productName.trim(),
-                                category = item.category,
-                                description = item.description,
-                                activeIngredient = item.activeIngredient,
-                                unit = item.unit
-                            )
-                        )
-                        inventoryDao.insertInventory(
-                            StoreInventoryEntity(
-                                storeId = storeId,
-                                productId = productId,
-                                priceYer = item.priceYer,
-                                stockQuantity = 15,
-                                stockStatus = item.stockStatus
-                            )
-                        )
-                        count++
-                    }
-                    _toastMessage.value = "تم استيراد $count صنف بنجاح إلى مخزون متجرك فقط 📊"
+                    processStoreImportedItems(importedItems, storeId)
                 } else {
-                    _toastMessage.value = "فشل في قراءة الملف"
+                    _toastMessage.value = "فشل في قراءة الملف المحدد"
                 }
             } catch (e: Exception) {
                 _toastMessage.value = "خطأ الاستيراد: ${e.localizedMessage}"
@@ -407,6 +385,53 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _isImporting.value = false
             }
         }
+    }
+
+    fun importExcelTextForSpecificStore(text: String, storeId: Long) {
+        viewModelScope.launch {
+            _isImporting.value = true
+            try {
+                val importedItems = CsvExcelImporter.parseTextContent(text)
+                if (importedItems.isNotEmpty()) {
+                    processStoreImportedItems(importedItems, storeId)
+                } else {
+                    _toastMessage.value = "لم يتم التعرف على أي أصناف في النص الملصق"
+                }
+            } catch (e: Exception) {
+                _toastMessage.value = "خطأ الاستيراد: ${e.localizedMessage}"
+            } finally {
+                _isImporting.value = false
+            }
+        }
+    }
+
+    private suspend fun processStoreImportedItems(importedItems: List<ImportedInventoryItem>, storeId: Long) {
+        var count = 0
+        var totalQty = 0
+        for (item in importedItems) {
+            var product = productDao.getProductByName(item.productName.trim())
+            val productId = product?.id ?: productDao.insertProduct(
+                ProductEntity(
+                    name = item.productName.trim(),
+                    category = item.category,
+                    description = item.description,
+                    activeIngredient = item.activeIngredient,
+                    unit = item.unit
+                )
+            )
+            inventoryDao.insertInventory(
+                StoreInventoryEntity(
+                    storeId = storeId,
+                    productId = productId,
+                    priceYer = item.priceYer,
+                    stockQuantity = item.stockQuantity,
+                    stockStatus = item.stockStatus
+                )
+            )
+            count++
+            totalQty += item.stockQuantity
+        }
+        _toastMessage.value = "تم استيراد $count صنف بإجمالي كمية ($totalQty) بنجاح إلى مخزون متجرك 📊"
     }
 
     fun updateStoreInfo(store: StoreEntity) {

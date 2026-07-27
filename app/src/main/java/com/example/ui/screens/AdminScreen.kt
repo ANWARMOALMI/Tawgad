@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -122,14 +123,19 @@ fun AdminScreen(
     ) {
         // Header Banner
         Surface(
-            color = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White,
-            modifier = Modifier.fillMaxWidth()
+            color = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shadowElevation = 1.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -143,39 +149,41 @@ fun AdminScreen(
                         Icon(
                             imageVector = Icons.Default.AdminPanelSettings,
                             contentDescription = "لوحة التحكم",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(28.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "لوحة تحكم الإدارة والاستيراد",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
                     OutlinedButton(
                         onClick = onLogoutAdmin,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
+                            contentColor = Color(0xFFD32F2F)
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.6f)),
-                        shape = RoundedCornerShape(12.dp)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF9A9A)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
                             contentDescription = "قفل الإدارة",
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(13.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("قفل / خروج", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("خروج", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Text(
                     text = "إدارة المخزون، رفع ملفات أكسل Excel/CSV، وإدارة الصيدليات والأسعار",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.padding(top = 4.dp)
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
